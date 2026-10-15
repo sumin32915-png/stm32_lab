@@ -14,6 +14,8 @@
  */
 // static uint8_t uart2_rx_ece2;
 // static uint8_t uart3_rx_ece2;
+/* STM32_1_과제3: LED 상태 변경 간격 (TIM6 호출 횟수, 1회 = 100 ms) */
+static volatile uint32_t blink_ticks = 10U;
 
 /* 주변장치 초기화가 끝난 뒤, 메인 루프에 들어가기 전에 한 번 호출됩니다. */
 void ece2_474_init(void)
@@ -24,7 +26,7 @@ void ece2_474_init(void)
      */
 
     /* TIM6: 100 ms마다 tim6_isr_p4()를 호출합니다. */
-    // HAL_TIM_Base_Start_IT(&htim6);
+     HAL_TIM_Base_Start_IT(&htim6);
 
     /* TIM3: PB4에서 1 kHz PWM을 출력합니다. 비교값 500은 50%입니다. */
     // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
@@ -51,38 +53,28 @@ void ece2_474_init(void)
 /* 메인 루프에서 반복해서 호출됩니다. */
 void polling_routine(void)
 {
-    static GPIO_PinState previous = GPIO_PIN_RESET;
-    static uint32_t last_press_ms = 0;
-    static uint32_t last_toggle_ms = 0;
-    static uint32_t interval_ms = 1000U;
-    GPIO_PinState current = HAL_GPIO_ReadPin(
-        BUTTON_ece2_GPIO_Port, BUTTON_ece2_Pin);
-    uint32_t now_ms = HAL_GetTick();
-
-    /* 버튼: 누른 순간 한 번만 간격 변경 */
-    if (current == GPIO_PIN_SET
-        && previous == GPIO_PIN_RESET
-        && now_ms - last_press_ms >= 200U)
-    {
-        last_press_ms = now_ms;
-        interval_ms = (interval_ms >= 8000U)
-                      ? 1000U : interval_ms * 2U;
-    }
-    previous = current;
-
-    /* LED: interval_ms마다 상태 변경 */
-    if (now_ms - last_toggle_ms >= interval_ms)
-    {
-        last_toggle_ms = now_ms;
-        HAL_GPIO_TogglePin(GPIO_OUT1_ece2_GPIO_Port, GPIO_OUT1_ece2_Pin);
-    }
+    
+    
 }
 /* 1. 사용자 버튼 PC13을 눌렀을 때 호출됩니다. 우선순위: 7.
  * 버튼의 접점 때문에 한 번 눌러도 여러 번 호출될 수 있습니다.
  */
 static void button_isr_p7(void)
 {
-    /* 실습 코드 작성: 버튼 이벤트를 기록하거나 LED 상태를 변경합니다. */
+    static uint32_t last_ms = 0;
+    uint32_t now_ms = HAL_GetTick();
+    if (now_ms - last_ms >= 200U)
+    {
+        last_ms = now_ms;
+        if (blink_ticks >= 80U)
+        {
+            blink_ticks = 10U;
+        }
+        else
+        {
+            blink_ticks *= 2U;
+        }
+    }
 }
 
 /* 2. TIM6를 인터럽트 방식으로 시작하면 100 ms마다 호출됩니다. 우선순위: 4.
@@ -90,7 +82,12 @@ static void button_isr_p7(void)
  */
 static void tim6_isr_p4(void)
 {
-    /* 실습 코드 작성: 횟수를 세거나 메인 루프에서 처리할 표시를 남깁니다. */
+    static uint32_t count = 0;
+    if (++count >= blink_ticks)
+    {
+        count = 0;
+        HAL_GPIO_TogglePin(LED_ece2_GPIO_Port, LED_ece2_Pin);
+    }
 }
 
 /* 3. PC 통신 UART2의 요청한 수신이 완료되면 호출됩니다. 우선순위: 6.
