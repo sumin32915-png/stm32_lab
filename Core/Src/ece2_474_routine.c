@@ -14,8 +14,8 @@
  */
 // static uint8_t uart2_rx_ece2;
 // static uint8_t uart3_rx_ece2;
-/* STM32_1_과제3: LED 상태 변경 간격 (TIM6 호출 횟수, 1회 = 100 ms) */
-static volatile uint32_t blink_ticks = 10U;
+/* STM32_1_과제4: TIM3 채널 1 비교값. 한 주기 1000칸이므로 250 = 25% */
+static volatile uint32_t pwm_ccr = 250U;
 
 /* 주변장치 초기화가 끝난 뒤, 메인 루프에 들어가기 전에 한 번 호출됩니다. */
 void ece2_474_init(void)
@@ -26,11 +26,11 @@ void ece2_474_init(void)
      */
 
     /* TIM6: 100 ms마다 tim6_isr_p4()를 호출합니다. */
-     HAL_TIM_Base_Start_IT(&htim6);
+    // HAL_TIM_Base_Start_IT(&htim6);
 
     /* TIM3: PB4에서 1 kHz PWM을 출력합니다. 비교값 500은 50%입니다. */
-    // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-    // __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500U);
+     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwm_ccr);
 
     /* UART2: PC에서 한 바이트를 받으면 uart2_isr_p6()를 호출합니다.
      * 위의 uart2_rx_ece2 버퍼도 주석을 해제해야 합니다.
@@ -61,19 +61,20 @@ void polling_routine(void)
  */
 static void button_isr_p7(void)
 {
-    static uint32_t last_ms = 0;
+        static uint32_t last_ms = 0;
     uint32_t now_ms = HAL_GetTick();
     if (now_ms - last_ms >= 200U)
     {
         last_ms = now_ms;
-        if (blink_ticks >= 80U)
+        if (pwm_ccr >= 750U)
         {
-            blink_ticks = 10U;
+            pwm_ccr = 250U;
         }
         else
         {
-            blink_ticks *= 2U;
+            pwm_ccr += 250U;
         }
+        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwm_ccr);
     }
 }
 
@@ -82,12 +83,7 @@ static void button_isr_p7(void)
  */
 static void tim6_isr_p4(void)
 {
-    static uint32_t count = 0;
-    if (++count >= blink_ticks)
-    {
-        count = 0;
-        HAL_GPIO_TogglePin(LED_ece2_GPIO_Port, LED_ece2_Pin);
-    }
+    /* 실습 코드 작성: TIM6 인터럽트 처리 */
 }
 
 /* 3. PC 통신 UART2의 요청한 수신이 완료되면 호출됩니다. 우선순위: 6.
