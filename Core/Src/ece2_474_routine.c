@@ -15,7 +15,7 @@
 // static uint8_t uart2_rx_ece2;
 // static uint8_t uart3_rx_ece2;
 /* STM32_1_과제4: TIM3 채널 1 비교값. 한 주기 1000칸이므로 250 = 25% */
-static volatile uint32_t pwm_ccr = 250U;
+//static volatile uint32_t pwm_ccr = 250U;
 
 /* 주변장치 초기화가 끝난 뒤, 메인 루프에 들어가기 전에 한 번 호출됩니다. */
 void ece2_474_init(void)
@@ -29,8 +29,8 @@ void ece2_474_init(void)
     // HAL_TIM_Base_Start_IT(&htim6);
 
     /* TIM3: PB4에서 1 kHz PWM을 출력합니다. 비교값 500은 50%입니다. */
-     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwm_ccr);
+    // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+    // __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwm_ccr);
 
     /* UART2: PC에서 한 바이트를 받으면 uart2_isr_p6()를 호출합니다.
      * 위의 uart2_rx_ece2 버퍼도 주석을 해제해야 합니다.
@@ -53,29 +53,22 @@ void ece2_474_init(void)
 /* 메인 루프에서 반복해서 호출됩니다. */
 void polling_routine(void)
 {
-    
-    
+    /* STM32_2 과제5: PC -> MCU -> PC
+     * 문자 한 개를 받아 문자와 바이트 값(16진수)을 출력한다. */
+    int ch = getchar();               /* 입력이 올 때까지 기다린다 */
+    if (ch != EOF)
+    {
+        uint8_t data = (uint8_t)ch;
+        printf("받은 문자: %c, 바이트 값: 0x%02X\r\n",
+               (char)data, (unsigned int)data);
+    }
 }
 /* 1. 사용자 버튼 PC13을 눌렀을 때 호출됩니다. 우선순위: 7.
  * 버튼의 접점 때문에 한 번 눌러도 여러 번 호출될 수 있습니다.
  */
 static void button_isr_p7(void)
 {
-        static uint32_t last_ms = 0;
-    uint32_t now_ms = HAL_GetTick();
-    if (now_ms - last_ms >= 200U)
-    {
-        last_ms = now_ms;
-        if (pwm_ccr >= 750U)
-        {
-            pwm_ccr = 250U;
-        }
-        else
-        {
-            pwm_ccr += 250U;
-        }
-        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwm_ccr);
-    }
+    /* 실습 코드 작성: 버튼을 눌렀을 때 처리 */
 }
 
 /* 2. TIM6를 인터럽트 방식으로 시작하면 100 ms마다 호출됩니다. 우선순위: 4.
