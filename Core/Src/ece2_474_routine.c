@@ -53,15 +53,22 @@ void ece2_474_init(void)
 /* 메인 루프에서 반복해서 호출됩니다. */
 void polling_routine(void)
 {
-    /* STM32_2 과제5: PC -> MCU -> PC
-     * 문자 한 개를 받아 문자와 바이트 값(16진수)을 출력한다. */
-    int ch = getchar();               /* 입력이 올 때까지 기다린다 */
-    if (ch != EOF)
-    {
-        uint8_t data = (uint8_t)ch;
-        printf("받은 문자: %c, 바이트 값: 0x%02X\r\n",
-               (char)data, (unsigned int)data);
-    }
+    /* STM32_3 과제8: SPI1 마스터로 1초마다 한 바이트 송신 */
+    static uint32_t last_ms = 0;
+    uint32_t now_ms = HAL_GetTick();
+    if (now_ms - last_ms < 1000U) return;
+    last_ms = now_ms;
+
+    uint8_t tx = 0x55;   /* 0x55, 0xA5, 0x00, 0xFF로 바꿔 가며 확인 */
+    HAL_GPIO_WritePin(SPI_CS_ece2_GPIO_Port,
+                      SPI_CS_ece2_Pin, GPIO_PIN_RESET);
+    HAL_StatusTypeDef result =
+        HAL_SPI_Transmit(&hspi1, &tx, 1U, 100U);
+    HAL_GPIO_WritePin(SPI_CS_ece2_GPIO_Port,
+                      SPI_CS_ece2_Pin, GPIO_PIN_SET);
+
+    printf("TX=%02X, result=%d\r\n",
+           (unsigned int)tx, (int)result);
 }
 /* 1. 사용자 버튼 PC13을 눌렀을 때 호출됩니다. 우선순위: 7.
  * 버튼의 접점 때문에 한 번 눌러도 여러 번 호출될 수 있습니다.
