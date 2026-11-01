@@ -53,16 +53,14 @@ void ece2_474_init(void)
 /* 메인 루프에서 반복해서 호출됩니다. */
 void polling_routine(void)
 {
-    /* STM32_2 과제6, 과제7: PC -> MCU -> FPGA
-     * PC에서 받은 한 바이트를 UART3(PC10)로 FPGA에 전송한다. */
-    int ch = getchar();
+    /* STM32_2 과제5: PC -> MCU -> PC
+     * 문자 한 개를 받아 문자와 바이트 값(16진수)을 출력한다. */
+    int ch = getchar();               /* 입력이 올 때까지 기다린다 */
     if (ch != EOF)
     {
         uint8_t data = (uint8_t)ch;
-        HAL_StatusTypeDef result =
-            HAL_UART_Transmit(&huart3, &data, 1U, 100U);
-        printf("보낸 문자: %c (0x%02X), 전송 결과: %d\r\n",
-               (char)data, (unsigned int)data, (int)result);
+        printf("받은 문자: %c, 바이트 값: 0x%02X\r\n",
+               (char)data, (unsigned int)data);
     }
 }
 /* 1. 사용자 버튼 PC13을 눌렀을 때 호출됩니다. 우선순위: 7.
